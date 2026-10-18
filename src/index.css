@@ -1,0 +1,89 @@
+@layer reset, tokens, components;
+
+@layer reset {
+}
+
+@layer tokens {
+  :root {
+    --color-dark-bg: #1b2430;
+    --color-mid-bg: #51557e;
+    --color-mid: #816797;
+    --color-light: #d6d5a8;
+  }
+}
+
+@layer base {
+  main {
+    font-family: "Consolas", "Lucida Console", Monaco, "Courier New", monospace;
+    color: var(--color-light);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  html {
+    background: var(--color-dark-bg);
+    margin: 0;
+    padding: 0;
+  }
+
+  main {
+    background: var(--color-mid-bg);
+    width: 40rem;
+    padding: 1rem 3rem;
+    border-radius: 0.6rem;
+    margin: auto;
+    height: 100vh;
+  }
+}
+
+@layer components {
+  .shader-canvas {
+    background: black;
+
+    width: 640px;
+    height: 400px;
+    image-rendering: pixelated;
+
+    display: block;
+    margin: 10px auto;
+    border-radius: 3px;
+  }
+
+  .code-editor {
+    margin: 0 auto;
+    width: 40em;
+  }
+
+  form {
+    margin: 0 auto;
+    padding: 1rem 0;
+  }
+
+  input[type="submit"],
+  input[type="reset"] {
+    font-size: 1rem;
+    text-transform: uppercase;
+    display: inline-block;
+    background-color: var(--color-dark-bg);
+    border: solid 0px white;
+    border-radius: 0.2em;
+    padding: 0.4rem 0.5rem;
+    box-shadow: 1px 1px;
+    color: white;
+
+    &:hover {
+      background-color: color-mix(var(--color-dark-bg) 50%, black 50%);
+    }
+
+    &:active {
+      box-shadow: none;
+    }
+  }
+}

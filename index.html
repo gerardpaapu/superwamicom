@@ -2,12 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/src/index.css" />
     <title>super-wamicom</title>
   </head>
   <body>
-    <div id="app"></div>
+    <main>
+      <h1>Super Wamicom</h1>
+      <canvas id="WamicomCanvas" class="shader-canvas" width="320" height="200"></canvas>
+      <div id="code" class="code-editor"></div>
+      <form>
+        <input type="submit" value="Update" />
+        <input type="reset" value="Reset" />
+        <input type="button" value="📼" id="ButtonRecord" disabled />
+      </form>
+    </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

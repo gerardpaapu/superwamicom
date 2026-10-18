@@ -39,7 +39,7 @@
     padding: 1rem 3rem;
     border-radius: 0.6rem;
     margin: auto;
-    height: 100vh;
+    min-height: 100vh;
   }
 }
 

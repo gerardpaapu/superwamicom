@@ -129,7 +129,7 @@ function tryAtoB(src: string | null | undefined) {
   }
 }
 
-let fromHash = tryAtoB(window.location.hash);
+let fromHash = tryAtoB(window.location.hash.slice(1));
 if (fromHash) {
   script_ = fromHash;
 }

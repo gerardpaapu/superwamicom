@@ -1,19 +1,23 @@
 import { defaultKeymap } from "@codemirror/commands";
-import type { MessageFromWorker, MessageToWorker } from "./message.ts";
+// import type { MessageFromWorker, MessageToWorker } from "./message.ts";
 import palette from "./palette/beach-day.ts";
-import Sandbox from "./sandbox.ts?worker";
+// import Sandbox from "./sandbox.ts?worker";
 import { javascript } from "@codemirror/lang-javascript";
 import { keymap } from "@codemirror/view";
 import { EditorView, basicSetup } from "codemirror";
 import { dracula as theme } from "thememirror";
 import recorder from "./record-gif.ts";
+import asmSrc from "../asm/asm-template.ts?raw";
+import { compile, type AsmModule } from "./asm.ts";
+
+let asmModule: AsmModule | undefined;
 
 const SCREEN_WIDTH = 320;
 const SCREEN_HEIGHT = 200;
 const HALF_SCREEN_WIDTH = 160;
 
-let worker = new Sandbox();
-let wamicom_buffer = new ArrayBuffer(HALF_SCREEN_WIDTH * SCREEN_HEIGHT);
+// let worker = new Sandbox();
+// let wamicom_buffer = new ArrayBuffer(HALF_SCREEN_WIDTH * SCREEN_HEIGHT);
 let editor: EditorView | undefined;
 
 const recordButton = document.getElementById("ButtonRecord") as HTMLInputElement;
@@ -60,7 +64,20 @@ const getContext = () => {
   return ctx;
 };
 
+let t = 0;
 const updateCanvas = () => {
+  if (asmModule == undefined) {
+    return;
+  }
+
+  try {
+    asmModule.update_buffer(t++);
+  } catch (e) {
+    console.error(e);
+    clearInterval(updateToken);
+  }
+
+  let wamicom_buffer = asmModule.get_buffer();
   const ctx = getContext();
   if (ctx == undefined || wamicom_buffer == undefined || wamicom_buffer.byteLength === 0) {
     return;
@@ -68,15 +85,14 @@ const updateCanvas = () => {
 
   const img = ctx.createImageData(SCREEN_WIDTH, SCREEN_HEIGHT);
   const buf = img.data;
-  const arr = new Uint8ClampedArray(wamicom_buffer);
   for (let y = 0; y < SCREEN_HEIGHT; y++) {
     for (let xh = 0; xh < HALF_SCREEN_WIDTH; xh++) {
       const x = xh * 2;
       const j = y * HALF_SCREEN_WIDTH + xh;
       const i = (y * SCREEN_WIDTH + x) * 4;
 
-      const highNibble = arr[j] >>> 4;
-      const lowNibble = arr[j] & 0xf;
+      const highNibble = wamicom_buffer[j] >>> 4;
+      const lowNibble = wamicom_buffer[j] & 0xf;
       const color_1 = palette[highNibble] as number;
       const color_2 = palette[lowNibble] as number;
 
@@ -96,26 +112,9 @@ const updateCanvas = () => {
   if (recorder.isRecording()) {
     recorder.capture(ctx);
   }
-
-  let message: MessageToWorker = {
-    type: "send-buffer",
-    buffer: wamicom_buffer,
-  };
-  worker.postMessage(message, [wamicom_buffer]);
 };
 
-const defaultScript = `const clamp = (a, n, x) => Math.min(Math.max(a, n), x);
-const toColor = (x) => clamp(Math.floor(x), 0, 15);
-
-const pixel = (x, y, t) => {
-  const scaled_y = y / 200;
-  const jitter = Math.sin(Math.PI * 10 * scaled_y) * 50 * scaled_y;
-  const scaled_x = (Math.PI * x + jitter) / 160;
-
-  const height = (Math.sin(scaled_x + t * 0.03) + 1) * 0.5;
-
-  return toColor(16 * (scaled_y - height));
-};`;
+const defaultScript = asmSrc;
 
 let script_ = defaultScript;
 
@@ -142,10 +141,16 @@ if (fromHash) {
 }
 
 function updateScript() {
-  let message: MessageToWorker = {
-    type: "update-script",
-    script: script_,
-  };
+  // let message: MessageToWorker = {
+  //   type: "update-script",
+  //   script: script_,
+  // };
+
+  compile(script_)
+    .then((m) => {
+      asmModule = m;
+    })
+    .catch((e) => console.error(e));
   if (script_ === defaultScript) {
     window.location.hash = "";
   } else {
@@ -160,8 +165,11 @@ function updateScript() {
       },
     });
   }
-  worker.postMessage(message);
+  // worker.postMessage(message);
 }
+
+let updateToken;
+
 const start = () => {
   const el = document.getElementById("code");
   editor = new EditorView({
@@ -200,30 +208,32 @@ const start = () => {
     script_ = defaultScript;
     updateScript();
   });
+  updateScript();
+  setInterval(updateCanvas, Math.floor(30 / 1000));
 
-  worker.onmessage = (e: MessageEvent<MessageFromWorker>) => {
-    const { data } = e;
-    switch (data.type) {
-      case "error":
-        console.error(data.error);
-        break;
+  //   worker.onmessage = (e: MessageEvent<MessageFromWorker>) => {
+  //     const { data } = e;
+  //     switch (data.type) {
+  //       case "error":
+  //         console.error(data.error);
+  //         break;
 
-      case "update":
-        wamicom_buffer = data.buffer;
-        updateCanvas();
-        break;
-    }
-  };
+  //       case "update":
+  //         wamicom_buffer = data.buffer;
+  //         updateCanvas();
+  //         break;
+  //     }
+  //   };
 
-  let message: MessageToWorker;
-  message = { type: "send-buffer", buffer: wamicom_buffer };
-  worker.postMessage(message, [wamicom_buffer]);
+  //   let message: MessageToWorker;
+  //   message = { type: "send-buffer", buffer: wamicom_buffer };
+  //   worker.postMessage(message, [wamicom_buffer]);
 
-  message = { type: "start" };
-  worker.postMessage(message);
+  //   message = { type: "start" };
+  //   worker.postMessage(message);
 
-  message = { type: "update-script", script: script_ };
-  worker.postMessage(message);
+  //   message = { type: "update-script", script: script_ };
+  //   worker.postMessage(message);
 };
 
 start();

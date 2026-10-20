@@ -3,12 +3,8 @@ import asc from "assemblyscript/asc";
 import * as loader from "@assemblyscript/loader";
 import type { _BinaryenModuleSetFieldName } from "types:assemblyscript/src/glue/binaryen";
 
-// const PHASE_1_ITERATIONS = 100;
-// const PHASE_2_ITERATIONS = 1_000;
-
-const compile = async () => {
+const compile = async (src: string) => {
   const fs = new Map();
-  const pixelSrc = await FS.readFile("./asm/asm-pixel.ts", "utf8");
   const result = await asc.main(
     [
       "pixel.ts",
@@ -19,13 +15,16 @@ const compile = async () => {
       "--converge",
       "--noAssert",
       "--uncheckedBehavior=always",
+      "--enable=simd",
+      "--enable=relaxed-simd",
+      "--runtime=stub",
     ],
     {
       readFile: async (filename) => {
         if (filename.endsWith(".json")) {
           return JSON.stringify({});
         }
-        return pixelSrc;
+        return src;
       },
 
       writeFile: async (filename, contents) => {
@@ -53,33 +52,11 @@ const compile = async () => {
   };
 };
 
-// function time(run: (t: number, h: number) => number): void {
-//   let h = 0xdeadbeef;
-//   let time = 0;
-
-//   for (let i = 0; i < PHASE_1_ITERATIONS; i++) {
-//     time -= performance.now();
-//     h = run(i, h);
-//     time += performance.now();
-//   }
-//   console.log(
-//     `Phase 1: iterations = ${PHASE_1_ITERATIONS}, time = ${(time / 1000).toFixed(2).padStart(6, "0")}, h=${h}`,
-//   );
-
-//   for (let i = 0; i < PHASE_2_ITERATIONS; i++) {
-//     time -= performance.now();
-//     h = run(i, h);
-//     time += performance.now();
-//   }
-
-//   console.log(
-//     `Phase 2: iterations = ${PHASE_2_ITERATIONS}, time = ${(time / 1000).toFixed(2).padStart(6, "0")}, h=${h}`,
-//   );
-// }
-
 export async function main() {
-  const { time } = await compile();
+  const pixelSrc = await FS.readFile("./asm/asm-pixel.ts", "utf8");
+  const { time } = await compile(pixelSrc);
   console.time("running ASM");
-  time();
+  let h = time();
   console.timeEnd("running ASM");
+  console.log(h);
 }

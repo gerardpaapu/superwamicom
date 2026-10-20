@@ -17,11 +17,6 @@ const BEACH_DAY_PALETTE = StaticArray.fromArray<u32>([
   0xf18985, // 15 - Bright Salmon
 ]);
 
-function toColor(x: f64): u8 {
-  const xx = u8(x);
-  return xx > 15 ? 15 : xx;
-}
-
 const PI_K = u32(Mathf.PI * 1_000);
 const SIN_K = new StaticArray<f32>(PI_K);
 
@@ -39,7 +34,7 @@ function calculatePixel(x: u32, y: u32, t: u32): u8 {
   const theta2 = u32(scaled_x + jitter + f32(t) * 0.03);
   const height = SIN_K[theta2 % PI_K] * 0.5;
 
-  return toColor(16 * (y * INV_HEIGHT - height));
+  return min<u8>(15, u8(16 * (y * INV_HEIGHT - height)));
 }
 
 const SCREEN_WIDTH: u32 = 320;
@@ -50,7 +45,22 @@ const PHASE_2_ITERATIONS = 1_000;
 const wamicom_buffer = new StaticArray<u8>(SCREEN_HEIGHT * HALF_SCREEN_WIDTH);
 const output = new StaticArray<u8>(SCREEN_HEIGHT * SCREEN_WIDTH * 4);
 
-export function run(t: u32, h: i32): u32 {
+export function get_buffer(): StaticArray<u8> {
+  return wamicom_buffer;
+}
+
+export function update_buffer(t: u32): void {
+  for (let y: u32 = 0; y < SCREEN_HEIGHT; y++) {
+    for (let xh: u32 = 0; xh < HALF_SCREEN_WIDTH; xh++) {
+      const i: u32 = y * HALF_SCREEN_WIDTH + xh;
+      const p1 = calculatePixel(xh * 2 + 0, y, t) & 0xf;
+      const p2 = calculatePixel(xh * 2 + 1, y, t) & 0xf;
+      wamicom_buffer[i] = (p1 << 4) | p2;
+    }
+  }
+}
+
+export function run(t: u32, h: i32): i32 {
   for (let y: u32 = 0; y < SCREEN_HEIGHT; y++) {
     for (let xh: u32 = 0; xh < HALF_SCREEN_WIDTH; xh++) {
       const i: u32 = y * HALF_SCREEN_WIDTH + xh;

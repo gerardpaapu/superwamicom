@@ -45,17 +45,18 @@ function calculatePixel(x: u32, y: u32, t: u32): u8 {
 const SCREEN_WIDTH: u32 = 320;
 const SCREEN_HEIGHT: u32 = 200;
 const HALF_SCREEN_WIDTH: u32 = 160;
+const PHASE_2_ITERATIONS = 1_000;
 
 const wamicom_buffer = new StaticArray<u8>(SCREEN_HEIGHT * HALF_SCREEN_WIDTH);
 const output = new StaticArray<u8>(SCREEN_HEIGHT * SCREEN_WIDTH * 4);
 
-export function run(t: u32, h: u32): u32 {
+export function run(t: u32, h: i32): u32 {
   for (let y: u32 = 0; y < SCREEN_HEIGHT; y++) {
     for (let xh: u32 = 0; xh < HALF_SCREEN_WIDTH; xh++) {
       const i: u32 = y * HALF_SCREEN_WIDTH + xh;
       const p1 = calculatePixel(xh * 2 + 0, y, t) & 0xf;
       const p2 = calculatePixel(xh * 2 + 1, y, t) & 0xf;
-      unchecked((wamicom_buffer[i] = (p1 << 4) | p2));
+      wamicom_buffer[i] = (p1 << 4) | p2;
     }
   }
 
@@ -63,9 +64,9 @@ export function run(t: u32, h: u32): u32 {
   return check(h);
 }
 
-function check(n: u32 = 0xdeadbeef): u32 {
+function check(n: i32 = 0xdeadbeef): i32 {
   for (let i = 0; i < output.length; i++) {
-    n = n * 31 + unchecked(output[i]);
+    n = n * 31 + output[i];
   }
   return n;
 }
@@ -77,21 +78,45 @@ function decodeNibbles(): void {
       const j = y * HALF_SCREEN_WIDTH + xh;
       const i = (y * SCREEN_WIDTH + x) * 4;
 
-      const highNibble = unchecked(wamicom_buffer[j] >>> 4);
-      const lowNibble = unchecked(wamicom_buffer[j] & 0xf);
+      const highNibble = wamicom_buffer[j] >>> 4;
+      const lowNibble = wamicom_buffer[j] & 0xf;
 
-      const color_1 = unchecked(BEACH_DAY_PALETTE[highNibble]);
-      const color_2 = unchecked(BEACH_DAY_PALETTE[lowNibble]);
+      const color_1 = BEACH_DAY_PALETTE[highNibble];
+      const color_2 = BEACH_DAY_PALETTE[lowNibble];
 
-      unchecked((output[i + 0] = u8(color_1 >>> 16)));
-      unchecked((output[i + 1] = u8(color_1 >>> 8)));
-      unchecked((output[i + 2] = u8(color_1 >>> 0)));
-      unchecked((output[i + 3] = 0xff)); // alpha
+      output[i + 0] = u8(color_1 >>> 16);
+      output[i + 1] = u8(color_1 >>> 8);
+      output[i + 2] = u8(color_1 >>> 0);
+      output[i + 3] = 0xff; // alpha
 
-      unchecked((output[i + 4] = u8(color_2 >>> 16)));
-      unchecked((output[i + 5] = u8(color_2 >>> 8)));
-      unchecked((output[i + 6] = u8(color_2 >>> 0)));
-      unchecked((output[i + 7] = 0xff)); // alpha
+      output[i + 4] = u8(color_2 >>> 16);
+      output[i + 5] = u8(color_2 >>> 8);
+      output[i + 6] = u8(color_2 >>> 0);
+      output[i + 7] = 0xff; // alpha
     }
   }
+}
+
+export function time(): i32 {
+  let h: i32 = 0xdeadbeef;
+  // let time: f64 = 0;
+
+  // for (let i = 0; i < PHASE_1_ITERATIONS; i++) {
+  //   h = run(i, h);
+  // }
+  // console.log(
+  //   `Phase 1: iterations = ${PHASE_1_ITERATIONS}, time = ${(time / 1000).toFixed(2).padStart(6, "0")}, h=${h}`,
+  // );
+
+  for (let i = 0; i < PHASE_2_ITERATIONS; i++) {
+    // time -= performance.now();
+    h = run(i, h);
+    // time += performance.now();
+  }
+
+  // console.log(
+  //   `Phase 2: iterations = ${PHASE_2_ITERATIONS}, time = ${(time / 1000).toFixed(2).padStart(6, "0")}, h=${h}`,
+  // );
+
+  return h;
 }

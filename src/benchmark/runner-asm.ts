@@ -10,7 +10,16 @@ const compile = async () => {
   const fs = new Map();
   const pixelSrc = await FS.readFile("./asm/asm-pixel.ts", "utf8");
   const result = await asc.main(
-    ["pixel.ts", "--outFile", "pixel.wasm", "-O3", "--no-bounds-check"],
+    [
+      "pixel.ts",
+      "--outFile",
+      "pixel.wasm",
+      "-Ospeed",
+      "--optimizeLevel=3",
+      "--converge",
+      "--noAssert",
+      "--uncheckedBehavior=always",
+    ],
     {
       readFile: async (filename) => {
         if (filename.endsWith(".json")) {
@@ -28,10 +37,12 @@ const compile = async () => {
       },
     },
   );
+
+  const buffer: Buffer = (result.stderr as any).toBuffer();
+  const decoder = new TextDecoder();
+  console.error(decoder.decode(buffer));
+
   if (result.error) {
-    const buffer: Buffer = (result.stderr as any).toBuffer();
-    const decoder = new TextDecoder();
-    console.error(decoder.decode(buffer));
     throw new Error(`Failed to compile`);
   }
 

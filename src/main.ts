@@ -14,6 +14,7 @@ const HALF_SCREEN_WIDTH = 160;
 
 let worker = new Sandbox();
 let wamicom_buffer = new ArrayBuffer(HALF_SCREEN_WIDTH * SCREEN_HEIGHT);
+let editor: EditorView | undefined;
 
 const recordButton = document.getElementById("ButtonRecord") as HTMLInputElement;
 recordButton.disabled = false;
@@ -129,6 +130,12 @@ function tryAtoB(src: string | null | undefined) {
   }
 }
 
+const params = new URLSearchParams(window.location.search);
+if (params.get("data")) {
+  const url = new URL(window.location.origin);
+  window.location.replace(`${url}#${params.get("data")}`);
+}
+
 let fromHash = tryAtoB(window.location.hash.slice(1));
 if (fromHash) {
   script_ = fromHash;
@@ -144,13 +151,20 @@ function updateScript() {
   } else {
     window.location.hash = btoa(script_);
   }
-
+  if (editor !== undefined && script_ !== editor.state.doc.toString()) {
+    editor.dispatch({
+      changes: {
+        from: 0,
+        to: editor.state.doc.length,
+        insert: script_,
+      },
+    });
+  }
   worker.postMessage(message);
 }
-
 const start = () => {
   const el = document.getElementById("code");
-  new EditorView({
+  editor = new EditorView({
     doc: script_,
     parent: el!,
     extensions: [
@@ -184,6 +198,7 @@ const start = () => {
     e.preventDefault();
     window.location.hash = "";
     script_ = defaultScript;
+    updateScript();
   });
 
   worker.onmessage = (e: MessageEvent<MessageFromWorker>) => {

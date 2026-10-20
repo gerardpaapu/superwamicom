@@ -1,5 +1,4 @@
 import type { MessageToWorker, MessageFromWorker } from "./message.ts";
-
 const SCREEN_HEIGHT = 200;
 const HALF_SCREEN_WIDTH = 160;
 const MS_PER_FRAME = Math.floor(1000 / 30);
@@ -40,6 +39,7 @@ const update = () => {
     t++;
   } catch (e) {
     clearInterval(token);
+    token = undefined;
     let message: MessageFromWorker = {
       type: "error",
       error: String(e),
@@ -57,7 +57,7 @@ const update = () => {
   self.postMessage(message, [buffer]);
 };
 
-let token: undefined | number;
+let token: NodeJS.Timeout | undefined;
 
 self.onmessage = (e: MessageEvent<MessageToWorker>) => {
   const { data } = e;
@@ -68,10 +68,14 @@ self.onmessage = (e: MessageEvent<MessageToWorker>) => {
 
     case "update-script":
       src = data.script;
+      if (!token) {
+        token = setInterval(update, MS_PER_FRAME);
+      }
       break;
 
     case "stop":
       clearInterval(token);
+      token = undefined;
       break;
 
     case "start":

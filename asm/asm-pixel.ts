@@ -17,7 +17,7 @@ const BEACH_DAY_PALETTE = StaticArray.fromArray<u32>([
   0xf18985, // 15 - Bright Salmon
 ]);
 
-function toColor(x: f32): u8 {
+function toColor(x: f64): u8 {
   const xx = u8(x);
   return xx > 15 ? 15 : xx;
 }
@@ -29,15 +29,17 @@ for (let i: u32 = 0; i < PI_K; i++) {
   SIN_K[i] = Mathf.sin(f32(i) / 1000);
 }
 
+const INV_HEIGHT = 0.005;
+const INV_WIDTH_2 = 0.00625;
+
 function calculatePixel(x: u32, y: u32, t: u32): u8 {
-  const scaled_y = f32(y) / 200;
-  const theta = u32(Mathf.PI * 10 * scaled_y);
-  const jitter = SIN_K[theta % PI_K] * 50 * scaled_y;
-  const scaled_x = (Mathf.PI * f32(x) + jitter) / 160;
-  const theta2 = u32(scaled_x + f32(t) * 0.03);
+  const theta = u32(f32(PI_K * 10 * y) * INV_HEIGHT);
+  const jitter = SIN_K[theta % PI_K] * f32(y) * 50 * INV_HEIGHT * INV_WIDTH_2;
+  const scaled_x = f32(PI_K * x) * INV_WIDTH_2;
+  const theta2 = u32(scaled_x + jitter + f32(t) * 0.03);
   const height = SIN_K[theta2 % PI_K] * 0.5;
 
-  return toColor(16 * (scaled_y - height));
+  return toColor(16 * (y * INV_HEIGHT - height));
 }
 
 const SCREEN_WIDTH: u32 = 320;

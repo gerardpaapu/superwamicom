@@ -9,22 +9,31 @@ const PHASE_2_ITERATIONS = 1_000;
 const compile = async () => {
   const fs = new Map();
   const pixelSrc = await FS.readFile("./asm/asm-pixel.ts", "utf8");
-  await asc.main(["pixel.ts", "--outFile", "pixel.wasm", "--optimize", "--stats"], {
-    readFile: async (filename) => {
-      if (filename.endsWith(".json")) {
-        return JSON.stringify({});
-      }
-      return pixelSrc;
-    },
+  const result = await asc.main(
+    ["pixel.ts", "--outFile", "pixel.wasm", "-O3", "--no-bounds-check"],
+    {
+      readFile: async (filename) => {
+        if (filename.endsWith(".json")) {
+          return JSON.stringify({});
+        }
+        return pixelSrc;
+      },
 
-    writeFile: async (filename, contents) => {
-      fs.set(filename, contents);
-    },
+      writeFile: async (filename, contents) => {
+        fs.set(filename, contents);
+      },
 
-    listFiles: async () => {
-      return ["pixel.ts"];
+      listFiles: async () => {
+        return ["pixel.ts"];
+      },
     },
-  });
+  );
+  if (result.error) {
+    const buffer: Buffer = (result.stderr as any).toBuffer();
+    const decoder = new TextDecoder();
+    console.error(decoder.decode(buffer));
+    throw new Error(`Failed to compile`);
+  }
 
   const rom$ = fs.get("pixel.wasm");
   const rom = await loader.instantiate(rom$, {});

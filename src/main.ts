@@ -64,9 +64,20 @@ const getContext = () => {
   return ctx;
 };
 
+let LAST_FRAME = Date.now();
 let t = 0;
 const updateCanvas = () => {
+  let prev = LAST_FRAME;
+  LAST_FRAME = performance.now();
+
+  if (t % 500 === 0) {
+    console.log(
+      `FPS: ${(1000 / (LAST_FRAME - prev)).toFixed(2)} (${prev.toFixed()}, ${LAST_FRAME.toFixed()})`,
+    );
+  }
+
   if (asmModule == undefined) {
+    setTimeout(updateCanvas);
     return;
   }
 
@@ -74,7 +85,7 @@ const updateCanvas = () => {
     asmModule.update_buffer(t++);
   } catch (e) {
     console.error(e);
-    clearInterval(updateToken);
+    return;
   }
 
   let wamicom_buffer = asmModule.get_buffer();
@@ -109,6 +120,7 @@ const updateCanvas = () => {
   }
 
   ctx.putImageData(img, 0, 0);
+  setTimeout(updateCanvas);
   if (recorder.isRecording()) {
     recorder.capture(ctx);
   }
@@ -165,10 +177,9 @@ function updateScript() {
       },
     });
   }
+  setTimeout(updateCanvas);
   // worker.postMessage(message);
 }
-
-let updateToken;
 
 const start = () => {
   const el = document.getElementById("code");
@@ -209,7 +220,7 @@ const start = () => {
     updateScript();
   });
   updateScript();
-  setInterval(updateCanvas, Math.floor(30 / 1000));
+  setTimeout(updateCanvas);
 
   //   worker.onmessage = (e: MessageEvent<MessageFromWorker>) => {
   //     const { data } = e;

@@ -64,16 +64,24 @@ const getContext = () => {
   return ctx;
 };
 
-let LAST_FRAME = Date.now();
+let FRAME_TIME_LENGTH = 4;
+let FPS_FACTOR = FRAME_TIME_LENGTH * 1_000;
+let frameTimes = [-Infinity, -Infinity, -Infinity, -Infinity];
+let frameIdx = 0;
+let fps = 0;
 let t = 0;
-const updateCanvas = () => {
-  let prev = LAST_FRAME;
-  LAST_FRAME = performance.now();
 
-  if (t % 500 === 0) {
-    console.log(
-      `FPS: ${(1000 / (LAST_FRAME - prev)).toFixed(2)} (${prev.toFixed()}, ${LAST_FRAME.toFixed()})`,
-    );
+const updateCanvas = () => {
+  {
+    frameTimes[frameIdx] = performance.now();
+    const duration = frameTimes[frameIdx] - frameTimes[(frameIdx - 1) % FRAME_TIME_LENGTH];
+    fps = FPS_FACTOR / duration;
+    frameIdx++;
+    frameIdx %= FRAME_TIME_LENGTH;
+
+    if (t % 500 === FRAME_TIME_LENGTH) {
+      console.log(`FPS: ${fps.toFixed(2).padStart(8, " ")}`);
+    }
   }
 
   if (asmModule == undefined) {
